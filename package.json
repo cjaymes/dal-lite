@@ -1,0 +1,29 @@
+{
+  "name": "dal-lite",
+  "version": "0.0.1",
+  "description": "A lightweight database abstraction layer",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cjaymes/dal-lite.git"
+  },
+  "keywords": [
+    "database",
+    "dal",
+    "sql"
+  ],
+  "author": "Casey Jaymes",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cjaymes/dal-lite/issues"
+  },
+  "homepage": "https://github.com/cjaymes/dal-lite#readme",
+  "dependencies": {
+    "pg-promise": "^11.10.2",
+    "sqlite3": "^5.1.7"
+  }
+}
