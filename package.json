@@ -1,11 +1,13 @@
 {
   "name": "dal-lite",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A lightweight database abstraction layer",
-  "main": "index.js",
+  "main": "src/index.js",
   "type": "module",
+  "types": "src/index.d.ts",
   "scripts": {
-    "test": "node test.js"
+    "test": "node test.js",
+    "build": "npx tsc -p tsconfig.json"
   },
   "repository": {
     "type": "git",
@@ -25,5 +27,9 @@
   "dependencies": {
     "pg-promise": "^11.10.2",
     "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
   }
 }

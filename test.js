@@ -1,7 +1,6 @@
 import { suite, test } from 'node:test';
 import {access, constants} from 'node:fs/promises';
-import Dal from "./index.js";
-import SqliteDal from './dals/sqlite3.js';
+import Dal from "./src/index.js";
 
 suite('sqlite3 in-memory', async () => {
     test('sqlite dal from sqlite3::memory:', async (t) => {
