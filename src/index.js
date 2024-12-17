@@ -42,6 +42,25 @@ export default class Dal {
         );
     }
 
+    async dropTable(tableName) {
+        throw new Error(
+            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            } function`
+        );
+    }
+
+    // features from SQL
+    // TODO createIndex
+    // TODO updateIndex
+    // TODO dropIndex
+    // TODO createView
+    // TODO dropView
+    // TODO transaction
+    // TODO prepare
+    // TODO vacuum
+    // TODO explain
+    // TODO analyze
+
     async exec(sql) {
         throw new Error(
             `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
@@ -49,51 +68,58 @@ export default class Dal {
         );
     }
 
-    async updateSchema(schemaPath) {
-        if (!(await this.tableExists("config"))) {
-            console.info(
-                `No config table, creating schema from ${schemaPath}/initial.json...`
-            );
-            let json;
-            try {
-                json = JSON.parse(
-                    await readFile(
-                        new URL(`${schemaPath}/initial.json`, import.meta.url)
-                    )
+    async query(sql) {
+        throw new Error(
+            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            } function`
+        );
+    }
+
+    async insert(values, into) {
+        throw new Error(
+            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            } function`
+        );
+    }
+
+    async update(tableName, changes, _where) {
+        throw new Error(
+            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            } function`
+        );
+    }
+
+    async select(from, _where, _groupBy) {
+        throw new Error(
+            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            } function`
+        );
+    }
+
+    async delete(from, _where, _orderBy, _limit) {
+        throw new Error(
+            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            } function`
+        );
+    }
+
+    async applyDataDefinition(def) {
+        if ("tables" in def) {
+            for (let tableName in def.tables) {
+                // TODO CREATE IF NOT EXITS?
+                await this.createTable(
+                    tableName,
+                    def.tables[tableName]
                 );
-            } catch {
-                console.error(
-                    `Unable to load schema file from ${schemaPath}/initial.json`
-                );
-                process.exit(1);
             }
-            // TODO schemae
-            if ("tables" in json) {
-                for (let tableName in json.tables) {
-                    if (!(await this.tableExists(tableName))) {
-                        await this.createTable(
-                            tableName,
-                            json.tables[tableName]
-                        );
-                    } else {
-                        // TODO CREATE IF NOT EXITS?
-                        await this.alterTable(
-                            tableName,
-                            json.tables[tableName]
-                        );
-                    }
-                }
-            }
-            if ("indexes" in json) {
-                console.log("TODO schema indexes");
-            }
-            if ("views" in json) {
-                console.log("TODO schema views");
-            }
-        } else {
-            console.info("Have config, but might need upgrade.");
-            // TODO check config schema.version == package.json version
         }
+        if ("indexes" in def) {
+            throw new Error("TODO def indexes");
+        }
+        if ("views" in def) {
+            throw new Error("TODO def views");
+        }
+
     }
 
     async close() {

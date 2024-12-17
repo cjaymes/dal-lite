@@ -25,11 +25,12 @@
   },
   "homepage": "https://github.com/cjaymes/dal-lite#readme",
   "dependencies": {
-    "pg-promise": "^11.10.2",
+    "pg": "^8.13.1",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "@types/pg": "^8.11.10",
     "typescript": "^5.7.2"
   }
 }

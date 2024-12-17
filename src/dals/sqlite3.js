@@ -203,6 +203,33 @@ export default class SqliteDal extends Dal {
         });
     }
 
+    async query(sql) {
+        return new Promise((resolve, reject) => {
+            this.connection.all(sql, (err, rows) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(rows);
+                }
+            });
+        });
+    }
+
+    // features from SQLite
+    // TODO strict type checking
+    // TODO schema; attach & detach, automatically?
+
+    // features from API
+    // MAYBE configure
+    // TODO run (only way to get last id or changed count)
+    // TODO get
+    // TODO all
+    // TODO each
+    // TODO prepare
+    // TODO map
+    // MAYBE loadExtension
+    // MAYBE interrupt
+
     async close() {
         return new Promise((resolve, reject) => {
             console.info(`Disconnecting from sqlite3 database...`);

@@ -1,4 +1,5 @@
-import pgp from 'pg-promise';
+import pg from 'pg'
+const { Client } = pg;
 import Dal from "../index.js";
 
 class PgDal extends Dal {
@@ -13,14 +14,17 @@ class PgDal extends Dal {
     async connect() {
         // TODO parse some useful information out of the URI
         console.info(`Connecting to postgres database...`)
-        this.connection = await pgp(this.db_uri).connect()
+        this.connection = new Client({connectionString: this.uri});
+        await this.connection.connect()
 
         return this
     }
 
+    // TODO query
+
     async finalize() {
         console.info(`Disconnecting from postgres database...`)
-        await this.connection.done(true)
+        await this.connection.end()
     }
 }
 
