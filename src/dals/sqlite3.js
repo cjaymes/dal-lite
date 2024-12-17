@@ -109,7 +109,7 @@ export default class SqliteDal extends Dal {
     }
 
     _getForeignKeyDdl(foreignKeyDef) {
-        if (!Object.hasOwn(foreignKeyDef, "columns") || !Object.hasOwn(foreignKeyDef, "references") || !Object.hasOwn(foreignKeyDef.references, "table") || !Object.hasOwn(foreignKeyDef.references, "columns")) {
+        if (!("columns" in foreignKeyDef) || !("references" in foreignKeyDef) || !("table" in foreignKeyDef.references) || !("columns" in foreignKeyDef.references)) {
             throw new Error("foreign key definition requires columns & references & references.table & references.columns");
         }
         console.debug(
@@ -142,13 +142,13 @@ export default class SqliteDal extends Dal {
         return sql;
     }
 
-    async createTable(tableName, tableDef) {
+    _getTableDdl(tableName, tableDef) {
         let sql = [];
         // TODO schema-name.
         // TODO TEMP|TEMPORARY
         // TODO IF NOT EXISTS
 
-        if (!"columns" in tableDef) {
+        if (!("columns" in tableDef) || (typeof tableDef !== 'object')) {
             throw new Error("Table definition must contain columns");
         }
         for (let columnName in tableDef.columns) {
@@ -168,9 +168,13 @@ export default class SqliteDal extends Dal {
             });
         }
 
-        sql = `CREATE TABLE "${tableName}" (${sql.join(', ')})`;
+        return `CREATE TABLE "${tableName}" (${sql.join(', ')})`;
+    }
 
-        console.log(sql);
+    async createTable(tableName, tableDef) {
+        const sql = this._getTableDdl(tableName, tableDef);
+        console.debug(sql);
+
         return new Promise((resolve, reject) => {
             this.connection.exec(sql, (err) => {
                 if (err) {
@@ -184,6 +188,7 @@ export default class SqliteDal extends Dal {
 
     async alterTable(tableName, tableDef) {
         console.log(`ALTER TABLE ${tableName}`);
+        throw new Error("Unimplemented")
     }
 
     async exec(sql) {
