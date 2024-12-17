@@ -26,5 +26,13 @@ suite('sqlite3 file', async () => {
 
         await unlink('./test.sqlite');
     })
+    test('table exists', async (t) => {
+        let db = await Dal.getDal('sqlite:test.sqlite');
+        await db.connect();
+        await db.exec('CREATE TABLE "config" ("name" TEXT NOT NULL, "value" TEXT NOT NULL, PRIMARY KEY ("name"))');
 
+        t.assert.strictEqual(await db.tableExists('config'), true);
+
+        await unlink('./test.sqlite');
+    })
 })

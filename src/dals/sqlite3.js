@@ -38,9 +38,9 @@ export default class SqliteDal extends Dal {
                         reject(err);
                     } else {
                         if (row === undefined) {
-                            console.debug(`${tableName} does not exist`);
+                            console.debug(`${tableName} table does not exist`);
                         } else {
-                            console.debug(`${tableName} exists`);
+                            console.debug(`${tableName} table exists`);
                         }
                         resolve(
                             row !== undefined &&
