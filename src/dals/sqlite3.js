@@ -15,11 +15,17 @@ export default class SqliteDal extends Dal {
     }
 
     async connect() {
-        const filename = this.uri.split(":")[1];
+        const filename = this.uri.split(":", 2)[1];
         console.info(`Opening sqlite3 database ${filename}...`);
-        this.connection = new sqlite3.Database(filename);
-
-        return this;
+        return new Promise((resolve, reject) => {
+            this.connection = new sqlite3.Database(filename, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE | sqlite3.OPEN_FULLMUTEX, (err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this);
+                }
+            });
+        });
     }
 
     async tableExists(tableName) {

@@ -4,11 +4,12 @@ import { readFile } from "fs/promises";
 
 export default class Dal {
     constructor(uri) {
+        // TODO cache multiple connections
         // singleton
-        if (Dal.instance) {
-            return Dal.instance;
-        }
-        Dal.instance = this;
+        // if (Dal.instance) {
+        //     return Dal.instance;
+        // }
+        // Dal.instance = this;
 
         this.uri = uri;
     }
@@ -102,18 +103,18 @@ export default class Dal {
         );
     }
 
-    static async getDal(dbUri) {
-        if (dbUri.startsWith("sqlite:") || dbUri.startsWith("sqlite3:")) {
+    static async getDal(uri) {
+        if (uri.startsWith("sqlite:") || uri.startsWith("sqlite3:")) {
             return import("./dals/sqlite3.js").then((module) => {
-                return new module.default(dbUri);
+                return new module.default(uri);
             });
-        } else if (dbUri.startsWith("postgres")) {
+        } else if (uri.startsWith("postgres:")) {
             return import("./dals/postgres.js").then((module) => {
-                return new module.default(dbUri);
+                return new module.default(uri);
             });
         } else {
             throw new Error(
-                `Unknown database connection type in connection string: ${dbUri}`
+                `Unknown database connection type in connection string: ${uri}`
             );
         }
         // TODO auto-connect?

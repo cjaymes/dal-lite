@@ -1,14 +1,9 @@
 import pgp from 'pg-promise';
+import Dal from "../index.js";
 
-class PgDAL {
-    constructor(db_uri) {
-        // singleton
-        if (PgDAL.instance) {
-            return PgDAL.instance;
-        }
-        PgDAL.instance = this;
-
-        this.uri = db_uri
+class PgDal extends Dal {
+    constructor(uri) {
+        super(uri);
     }
 
     get_type() {
@@ -29,4 +24,4 @@ class PgDAL {
     }
 }
 
-export default PgDAL
+export default PgDal

@@ -1,1 +1,1 @@
-{"version":3,"file":"sqlite3.d.ts","sourceRoot":"","sources":["../../src/dals/sqlite3.js"],"names":[],"mappings":"AAOA;IAKI,mBAEC;IAED,yBAMC;IAHG,gBAAgD;IAKpD,0CAuBC;IAED,uDAiCC;IAED,8CAgBC;IAED,8CAoBC;IAED,yDAsCC;IAMD,6BAUC;IAED,sBAYC;IAED,0BAEC;CACJ;gBAlMe,aAAa"}
+{"version":3,"file":"sqlite3.d.ts","sourceRoot":"","sources":["../../src/dals/sqlite3.js"],"names":[],"mappings":"AAOA;IAKI,mBAEC;IAED,wBAYC;IARO,gBAME;IAIV,0CAuBC;IAED,uDAiCC;IAED,8CAgBC;IAED,8CAoBC;IAED,yDAsCC;IAMD,6BAUC;IAED,sBAYC;IAED,0BAEC;CACJ;gBAxMe,aAAa"}

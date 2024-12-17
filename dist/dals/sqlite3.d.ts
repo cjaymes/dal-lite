@@ -1,6 +1,6 @@
 export default class SqliteDal extends Dal {
     get_type(): string;
-    connect(): Promise<this>;
+    connect(): Promise<any>;
     connection: any;
     tableExists(tableName: any): Promise<any>;
     _getColumnDdl(columnName: any, columnDef: any): string;

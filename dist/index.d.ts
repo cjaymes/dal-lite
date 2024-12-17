@@ -1,5 +1,5 @@
 export default class Dal {
-    static getDal(dbUri: any): Promise<import("./dals/sqlite3.js").default | import("./dals/postgres.js").default>;
+    static getDal(uri: any): Promise<import("./dals/sqlite3.js").default | import("./dals/postgres.js").default>;
     constructor(uri: any);
     uri: any;
     connect(): Promise<void>;
