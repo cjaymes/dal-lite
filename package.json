@@ -1,6 +1,6 @@
 {
   "name": "dal-lite",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "A lightweight database abstraction layer",
   "main": "src/index.js",
   "type": "module",

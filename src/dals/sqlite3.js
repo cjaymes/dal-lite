@@ -95,11 +95,13 @@ export default class SqliteDal extends Dal {
         // TODO CONSTRAINT name
         sql = "PRIMARY KEY ("
 
-        if (!Array.isArray(primaryKeyDef)) {
-            throw new Error("primary key definition should be an array");
+        if (Array.isArray(primaryKeyDef)) {
+            sql += primaryKeyDef.map((v) => { return `"${v}"` }).join(", ");
+        } else if (typeof primaryKeyDef === "string") {
+            sql += `"${primaryKeyDef}"`;
+        } else {
+            throw new Error("primary key definition should be an array or a string");
         }
-
-        sql += primaryKeyDef.map((v) => { return `"${v}"` }).join(", ");
 
         sql += ")";
         // TODO conflict-clause
@@ -116,9 +118,21 @@ export default class SqliteDal extends Dal {
 
         let sql;
 
-        sql = `FOREIGN KEY (${foreignKeyDef.columns.map((v) => { return `"${v}"` }).join(',')})`;
+        if (Array.isArray(foreignKeyDef.columns)) {
+            sql = `FOREIGN KEY (${foreignKeyDef.columns.map((v) => { return `"${v}"` }).join(',')})`;
+        } else if (typeof foreignKeyDef.columns === "string") {
+            sql = `FOREIGN KEY ("${foreignKeyDef.columns}")`;
+        } else {
+            throw new Error("foreign key columns definition should be an array or a string");
+        }
 
-        sql += ` REFERENCES "${foreignKeyDef.references.table}" (${foreignKeyDef.references.columns.map((v) => { return `"${v}"` }).join(',')})`;
+        if (Array.isArray(foreignKeyDef.references.columns)) {
+            sql += ` REFERENCES "${foreignKeyDef.references.table}" (${foreignKeyDef.references.columns.map((v) => { return `"${v}"` }).join(',')})`;
+        } else if (typeof foreignKeyDef.references.columns === "string") {
+            sql += ` REFERENCES "${foreignKeyDef.references.table}" ("${foreignKeyDef.references.columns}")`;
+        } else {
+            throw new Error("foreign key references columns definition should be an array or a string");
+        }
 
         // TODO ON DELETE
         // TODO ON UPDATE
