@@ -215,10 +215,10 @@ suite('quoting', async () => {
         t.assert.strictEqual(db._quoteValue(1.0, 'REAL'), 1.0);
     })
     test('quote TEXT value', (t) => {
-        t.assert.strictEqual(db._quoteValue('test', 'TEXT'), '"test"');
+        t.assert.strictEqual(db._quoteValue('test', 'TEXT'), '\'test\'');
     })
     test('quote BLOB value', (t) => {
-        t.assert.strictEqual(db._quoteValue('test', 'BLOB'), '"test"');
+        t.assert.strictEqual(db._quoteValue('test', 'BLOB'), '\'test\'');
     })
 })
 

@@ -233,7 +233,7 @@ export default class SqliteDal extends Dal {
             return value;
         } else {
             // TODO escape " characters within TEXT/BLOBs
-            return `"${value}"`;
+            return `'${value}'`;
         }
     }
 
