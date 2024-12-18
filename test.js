@@ -249,6 +249,10 @@ suite('data manipulation', async () => {
         await db.insert('test', { id: 1, name: 'one' });
         t.assert.deepEqual((await db.query('SELECT * FROM "test"')), [{id:1, name: 'one'}])
     })
+    test('insert two rows', async (t) => {
+        await db.insert('test', [{ id: 1, name: 'one' }, { id: 2, name: 'two' }]);
+        t.assert.deepEqual((await db.query('SELECT * FROM "test"')), [{ id: 1, name: 'one' }, { id: 2, name: 'two' }])
+    })
     test('insert into main.test', async (t) => {
         await db.insert({ table: 'test', schema: 'main' }, { id: 1, name: 'one' });
         t.assert.deepEqual((await db.query('SELECT * FROM "test"')), [{ id: 1, name: 'one' }])
@@ -275,13 +279,27 @@ suite('data manipulation', async () => {
     })
     test('update id', async (t) => {
         await db.insert('test', { id: 1, name: 'one' });
-        await db.update('test', { id: 2})
+        t.assert.strictEqual(await db.update('test', { id: 2 }), 1);
         t.assert.deepEqual((await db.select('*', 'test')), [{ id: 2, name: 'one' }])
     })
     test('update id,name', async (t) => {
         await db.insert('test', { id: 1, name: 'one' });
-        await db.update('test', { id: 2, name: 'two' })
+        t.assert.strictEqual(await db.update('test', { id: 2, name: 'two' }), 1)
         t.assert.deepEqual((await db.select('*', 'test')), [{ id: 2, name: 'two' }])
+    })
+    test('update 2 rows', async (t) => {
+        await db.insert('test', { id: 1, name: 'one' });
+        await db.insert('test', { id: 2, name: 'two' });
+        t.assert.strictEqual(await db.update('test', { id: 3 }), 2)
+        t.assert.deepEqual((await db.select('*', 'test')), [{ id: 3, name: 'one' }, { id: 3, name: 'two' }])
+    })
+    test('delete 1 row', async (t) => {
+        await db.insert('test', { id: 1, name: 'one' });
+        t.assert.strictEqual(await db.delete('test'), 1)
+    })
+    test('delete 2 row', async (t) => {
+        await db.insert('test', { id: 1, name: 'one' });
+        t.assert.strictEqual(await db.delete('test'), 1)
     })
     afterEach(async () => {
         await db.exec('DROP TABLE "test"');
