@@ -146,7 +146,23 @@ export default class SqliteDal extends Dal {
         return sql;
     }
 
-    _getTableDdl(tableName, tableDef) {
+    _getTableSpec(table) {
+        if (Array.isArray(table) && table.length === 1) {
+            return this.quoteIdentifier(table[1]);
+        } else if (Array.isArray(table) && table.length === 2) {
+            return `${this.quoteIdentifier(table[0])}.${this.quoteIdentifier(table[1])}`;
+        } else if ((typeof table) === 'object' && 'schema' in table && 'table' in table) {
+            return `${this.quoteIdentifier(table.schema)}.${this.quoteIdentifier(table.table)}`;
+        } else if ((typeof table) === 'object' && 'table' in table) {
+            return this.quoteIdentifier(table.table);
+        } else if ((typeof table) === 'string') {
+            return this.quoteIdentifier(table);
+        } else {
+            throw new Error("Invalid table specifier: must be array (of length 1 or 2), object (with table and optionally schema keys) or string");
+        }
+    }
+
+    _getTableDdl(table, tableDef) {
         let sql = [];
         // TODO schema-name.
         // TODO TEMP|TEMPORARY
@@ -172,12 +188,12 @@ export default class SqliteDal extends Dal {
             });
         }
 
-        return `CREATE TABLE "${tableName}" (${sql.join(', ')})`;
+        return `CREATE TABLE ${this._getTableSpec(table)} (${sql.join(', ')})`;
     }
 
-    async createTable(tableName, tableDef) {
+    async createTable(table, tableDef) {
         // TODO create this._columnTypeCache[cacheKey]
-        const sql = this._getTableDdl(tableName, tableDef);
+        const sql = this._getTableDdl(table, tableDef);
         console.debug(sql);
 
         return new Promise((resolve, reject) => {
@@ -195,6 +211,17 @@ export default class SqliteDal extends Dal {
     //  TODO delete this._columnTypeCache[cacheKey]
     // TODO dropTable
     //  TODO delete this._columnTypeCache[cacheKey]
+    async dropTable(table) {
+        return new Promise((resolve, reject) => {
+            this.connection.exec(`DROP TABLE ${this._getTableSpec(table) }`, (err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    }
 
     async exec(sql) {
         return new Promise((resolve, reject) => {
@@ -246,30 +273,40 @@ export default class SqliteDal extends Dal {
         }
     }
 
-    async _getColumnTypes(tableName, _schemaName = null) {
-        let cacheKey, tableInfo;
+    async _getColumnTypes(table) {
+        let tableInfo;
 
-        if (_schemaName) {
-            // check cache
-            cacheKey = `${_schemaName}.${tableName}`;
-            if (cacheKey in this._columnTypeCache) {
-                console.debug('_getColumnTypes cache hit for ' + cacheKey)
-                return structuredClone(this._columnTypeCache[cacheKey]);
+        let cacheKey;
+        if (Array.isArray(table) && table.length === 1) {
+            cacheKey = this.quoteIdentifier(table[1]);
+        } else if (Array.isArray(table) && table.length === 2) {
+            if (table[0] !== 'main') {
+                throw new Error(`Can't get table_info for non-main table: ${this.quoteIdentifier(table[0])}.${this.quoteIdentifier(table[1])}`)
+            } else {
+                cacheKey = `${this.quoteIdentifier(table[1])}`;
             }
-
-            tableInfo = await this.query(`PRAGMA table_info(${this.quoteIdentifier(_schemaName) + '.' + this.quoteIdentifier(tableName)})`);
+        } else if ((typeof table) === 'object' && 'schema' in table && 'table' in table) {
+            if (table.schema !== 'main') {
+                throw new Error(`Can't get table_info for non-main table: ${this.quoteIdentifier(table.schema)}.${this.quoteIdentifier(table.table)}`)
+            } else {
+                cacheKey = `${this.quoteIdentifier(table.table)}`;
+            }
+        } else if ((typeof table) === 'object' && 'table' in table) {
+            cacheKey = this.quoteIdentifier(table.table);
+        } else if ((typeof table) === 'string') {
+            cacheKey = this.quoteIdentifier(table);
         } else {
-            // check cache
-            cacheKey = `main.${tableName}`;;
-            if (cacheKey in this._columnTypeCache) {
-                console.debug('_getColumnTypes cache hit for ' + cacheKey)
-                return structuredClone(this._columnTypeCache[cacheKey]);
-            }
-
-            tableInfo = await this.query(`PRAGMA table_info(${this.quoteIdentifier(tableName)})`);
+            throw new Error("Invalid table specifier: must be array (of length 1 or 2), object (with table and optionally schema keys) or string");
         }
 
-        console.debug('Retrieved table_info for ' + tableName + ': ' + JSON.stringify(tableInfo))
+        if (cacheKey in this._columnTypeCache) {
+            console.debug('_getColumnTypes cache hit for ' + cacheKey)
+            return structuredClone(this._columnTypeCache[cacheKey]);
+        }
+
+        tableInfo = await this.query(`PRAGMA table_info(${cacheKey})`);
+
+        console.debug('Retrieved table_info for ' + cacheKey + ': ' + JSON.stringify(tableInfo))
 
         // parse column types from results
         let colTypes = {};
@@ -283,7 +320,7 @@ export default class SqliteDal extends Dal {
         return colTypes;
     }
 
-    async insert(into, values) {
+    async insert(table, values) {
         return new Promise(async (resolve, reject) => {
             let sql = ['INSERT'];
 
@@ -292,28 +329,17 @@ export default class SqliteDal extends Dal {
             // TODO OR ABORT|FAIL|IGNORE|REPLACE|ROLLBACK
 
             sql.push('INTO');
-            let colTypes;
-            if (typeof into === 'string') {
+
+            // get column types for quoting
+            let colTypes = await this._getColumnTypes(table);
+
+            if (typeof table === 'string') {
                 // it's a table name
-                sql.push(this.quoteIdentifier(into));
-                // get column types for quoting
-                colTypes = await this._getColumnTypes(into);
-            } else if (typeof into === 'object') {
-                let into_clause;
-                if (!('table' in into)) {
-                    throw new Error('insert() into parameter requires table');
-                }
-                if ('schema' in into) {
-                    into_clause = this.quoteIdentifier(into.schema) + '.';
-                    // get column types for quoting
-                    colTypes = await this._getColumnTypes(into.table, into.schema);
-                } else {
-                    // get column types for quoting
-                    colTypes = await this._getColumnTypes(into.table);
-                }
-                into_clause += this.quoteIdentifier(into.table);
-                if ('as' in into) {
-                    into_clause += ' AS ' + this.quoteIdentifier(into.as);
+                sql.push(this._getTableSpec(table));
+            } else if (typeof table === 'object') {
+                let into_clause = this._getTableSpec(table);
+                if ('as' in table) {
+                    into_clause += ' AS ' + this.quoteIdentifier(table.as);
                 }
                 sql.push(into_clause);
             } else {
@@ -373,26 +399,14 @@ export default class SqliteDal extends Dal {
 
             // TODO OR ABORT|FAIL|IGNORE|REPLACE|ROLLBACK
 
-            let colTypes;
+            // get column types for quoting
+            let colTypes = await this._getColumnTypes(table);
+
             if (typeof table === 'string') {
                 // it's a table name
-                sql.push(this.quoteIdentifier(table));
-                // get column types for quoting
-                colTypes = await this._getColumnTypes(table);
+                sql.push(this._getTableSpec(table));
             } else if (typeof table === 'object') {
-                let table_clause;
-                if (!('table' in table)) {
-                    throw new Error('update() table parameter requires table');
-                }
-                if ('schema' in table) {
-                    table_clause = this.quoteIdentifier(table.schema) + '.';
-                    // get column types for quoting
-                    colTypes = await this._getColumnTypes(table.table, table.schema);
-                } else {
-                    // get column types for quoting
-                    colTypes = await this._getColumnTypes(table.table);
-                }
-                table_clause += this.quoteIdentifier(table.table);
+                let table_clause = this._getTableSpec(table);
                 if ('as' in table) {
                     table_clause += ' AS ' + this.quoteIdentifier(table.as);
                 }
@@ -427,6 +441,23 @@ export default class SqliteDal extends Dal {
         })
     }
 
+    _getFromClause(from) {
+        // TODO add join-clause/multi-table support
+        if (typeof from === 'string') {
+            // it's a table name
+            return (this._getTableSpec(from));
+        } else if (typeof from === 'object') {
+            // TODO add join-clause/multi-table support
+            let from_clause = this._getTableSpec(from);
+            if ('as' in from) {
+                from_clause += ' AS ' + this.quoteIdentifier(from.as);
+            }
+            return (from_clause);
+        } else {
+            throw new Error("Unknown select() from parameter; should be string or object");
+        }
+    }
+
     async select(columns, from, _options = null) {
         return new Promise(async (resolve, reject) => {
             let sql = [];
@@ -452,34 +483,11 @@ export default class SqliteDal extends Dal {
             }
 
             sql.push('FROM')
-            let colTypes;
-            if (typeof from === 'string') {
-                // it's a table name
-                sql.push(this.quoteIdentifier(from));
-                // get column types for quoting
-                colTypes = await this._getColumnTypes(from);
-            } else if (typeof from === 'object') {
-                // TODO add join-clause/multi-table support
-                let from_clause;
-                if (!('table' in from)) {
-                    throw new Error('select() from parameter requires table');
-                }
-                if ('schema' in from) {
-                    from_clause = this.quoteIdentifier(from.schema) + '.';
-                    // get column types for quoting
-                    colTypes = await this._getColumnTypes(from.table, from.schema);
-                } else {
-                    // get column types for quoting
-                    colTypes = await this._getColumnTypes(from.table);
-                }
-                from_clause += this.quoteIdentifier( from.table);
-                if ('as' in from) {
-                    from_clause += ' AS ' + this.quoteIdentifier(from.as);
-                }
-                sql.push(from_clause);
-            } else {
-                throw new Error("Unknown select() from parameter; should be string or object");
-            }
+
+            sql.push(this._getFromClause(from));
+
+            // get column types for quoting
+            let colTypes = await this._getColumnTypes(from);
 
             // TODO WHERE
             //  quote with colTypes
@@ -500,40 +508,16 @@ export default class SqliteDal extends Dal {
         })
     }
 
-    async delete(from, _options = null) {
+    async delete(table, _options = null) {
         return new Promise(async (resolve, reject) => {
             let sql = [];
             // TODO WITH
             sql.push('DELETE FROM');
 
-            let colTypes;
-            if (typeof from === 'string') {
-                // it's a table name
-                sql.push(this.quoteIdentifier(from));
-                // get column types for quoting
-                colTypes = await this._getColumnTypes(from);
-            } else if (typeof from === 'object') {
-                // TODO add join-clause/multi-table support
-                let from_clause;
-                if (!('table' in from)) {
-                    throw new Error('select() from parameter requires table');
-                }
-                if ('schema' in from) {
-                    from_clause = this.quoteIdentifier(from.schema) + '.';
-                    // get column types for quoting
-                    colTypes = await this._getColumnTypes(from.table, from.schema);
-                } else {
-                    // get column types for quoting
-                    colTypes = await this._getColumnTypes(from.table);
-                }
-                from_clause += this.quoteIdentifier(from.table);
-                if ('as' in from) {
-                    from_clause += ' AS ' + this.quoteIdentifier(from.as);
-                }
-                sql.push(from_clause);
-            } else {
-                throw new Error("Unknown select() from parameter; should be string or object");
-            }
+            sql.push(this._getFromClause(table));
+
+            // get column types for quoting
+            let colTypes = await this._getColumnTypes(table);
 
             // TODO WHERE
             //  quote with colTypes

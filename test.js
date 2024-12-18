@@ -154,9 +154,6 @@ suite('sqlite3 ddl', async () => {
 })
 
 suite('sqlite apply data def', () => {
-    test('create table', async (t) => {
-        const db = await Dal.getDal('sqlite::memory:');
-        await db.connect();
         const def = {
             tables: {
                 test: {
@@ -166,6 +163,9 @@ suite('sqlite apply data def', () => {
                 }
             }
         }
+    test('create table', async (t) => {
+        const db = await Dal.getDal('sqlite::memory:');
+        await db.connect();
         await db.applyDataDefinition(def);
 
         t.assert.strictEqual(await db.tableExists('test'), true)
@@ -173,15 +173,6 @@ suite('sqlite apply data def', () => {
     test('create table table_info', async (t) => {
         const db = await Dal.getDal('sqlite::memory:');
         await db.connect();
-        const def = {
-            tables: {
-                test: {
-                    columns: {
-                        id: { type: 'INTEGER' }
-                    }
-                }
-            }
-        }
         await db.applyDataDefinition(def);
 
         const tableInfo = await db.query('PRAGMA table_info([test]);');
@@ -191,6 +182,18 @@ suite('sqlite apply data def', () => {
         t.assert.equal(tableInfo[0].notnull, 0);
         t.assert.equal(tableInfo[0].pk, 0);
         t.assert.equal(tableInfo[0].type, 'INTEGER');
+    })
+    test('drop table', async (t) => {
+        const db = await Dal.getDal('sqlite::memory:');
+        await db.connect();
+        await db.applyDataDefinition(def);
+
+        t.assert.doesNotReject(async () => {
+            return db.dropTable('test');
+        });
+        t.assert.rejects(async () => {
+            return db.query('SELECT * FROM "test";');
+        })
     })
 })
 
@@ -253,8 +256,12 @@ suite('data manipulation', async () => {
         await db.insert('test', [{ id: 1, name: 'one' }, { id: 2, name: 'two' }]);
         t.assert.deepEqual((await db.query('SELECT * FROM "test"')), [{ id: 1, name: 'one' }, { id: 2, name: 'two' }])
     })
-    test('insert into main.test', async (t) => {
+    test('insert into {main.test}', async (t) => {
         await db.insert({ table: 'test', schema: 'main' }, { id: 1, name: 'one' });
+        t.assert.deepEqual((await db.query('SELECT * FROM "test"')), [{ id: 1, name: 'one' }])
+    })
+    test('insert into [main, test]', async (t) => {
+        await db.insert(['main', 'test'], { id: 1, name: 'one' });
         t.assert.deepEqual((await db.query('SELECT * FROM "test"')), [{ id: 1, name: 'one' }])
     })
     test('select *', async (t) => {
@@ -276,6 +283,10 @@ suite('data manipulation', async () => {
     test('select [id,name] from {main.test}', async (t) => {
         await db.insert('test', { id: 1, name: 'one' });
         t.assert.deepEqual((await db.select(['id', 'name'], {table: 'test', schema: 'main'})), [{ id: 1, name: 'one' }])
+    })
+    test('select [id,name] from [main,test]', async (t) => {
+        await db.insert('test', { id: 1, name: 'one' });
+        t.assert.deepEqual((await db.select(['id', 'name'], ['main','test'])), [{ id: 1, name: 'one' }])
     })
     test('update id', async (t) => {
         await db.insert('test', { id: 1, name: 'one' });
