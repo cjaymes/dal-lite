@@ -364,9 +364,66 @@ export default class SqliteDal extends Dal {
         })
     }
 
-    // TODO
-    // async update(tableName, changes, _options = null) {
-    // }
+    async update(table, changes, _options = null) {
+        return new Promise(async (resolve, reject) => {
+            // TODO WITH
+            let sql = ['UPDATE'];
+
+            // TODO OR ABORT|FAIL|IGNORE|REPLACE|ROLLBACK
+
+            let colTypes;
+            if (typeof table === 'string') {
+                // it's a table name
+                sql.push(this.quoteIdentifier(table));
+                // get column types for quoting
+                colTypes = await this._getColumnTypes(table);
+            } else if (typeof table === 'object') {
+                let table_clause;
+                if (!('table' in table)) {
+                    throw new Error('update() table parameter requires table');
+                }
+                if ('schema' in table) {
+                    table_clause = this.quoteIdentifier(table.schema) + '.';
+                    // get column types for quoting
+                    colTypes = await this._getColumnTypes(table.table, table.schema);
+                } else {
+                    // get column types for quoting
+                    colTypes = await this._getColumnTypes(table.table);
+                }
+                table_clause += this.quoteIdentifier(table.table);
+                if ('as' in table) {
+                    table_clause += ' AS ' + this.quoteIdentifier(table.as);
+                }
+                sql.push(table_clause);
+            } else {
+                throw new Error("Unknown update() table parameter; should be string or object");
+            }
+
+            sql.push('SET');
+            // TODO column-name-list for FROM
+            if (typeof changes !== 'object') {
+                throw new Error("Unknown update() changes parameter; should be an object")
+            }
+            let colAssignments = [];
+            for (let colName in changes) {
+                colAssignments.push(`${this.quoteIdentifier(colName)} = ${this.quoteValue(changes[colName], colTypes[colName])}`)
+            }
+            sql.push(colAssignments.join(', '))
+
+            // TODO FROM
+            // TODO WHERE
+
+            sql = sql.join(' ');
+            console.debug(sql);
+            this.connection.run(sql, function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.lastID);
+                }
+            })
+        })
+    }
 
     async select(columns, from, _options = null) {
         return new Promise(async (resolve, reject) => {

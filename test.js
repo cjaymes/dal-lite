@@ -273,6 +273,16 @@ suite('data manipulation', async () => {
         await db.insert('test', { id: 1, name: 'one' });
         t.assert.deepEqual((await db.select(['id', 'name'], {table: 'test', schema: 'main'})), [{ id: 1, name: 'one' }])
     })
+    test('update id', async (t) => {
+        await db.insert('test', { id: 1, name: 'one' });
+        await db.update('test', { id: 2})
+        t.assert.deepEqual((await db.select('*', 'test')), [{ id: 2, name: 'one' }])
+    })
+    test('update id,name', async (t) => {
+        await db.insert('test', { id: 1, name: 'one' });
+        await db.update('test', { id: 2, name: 'two' })
+        t.assert.deepEqual((await db.select('*', 'test')), [{ id: 2, name: 'two' }])
+    })
     afterEach(async () => {
         await db.exec('DROP TABLE "test"');
     })
