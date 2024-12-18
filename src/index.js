@@ -49,6 +49,20 @@ export default class Dal {
         );
     }
 
+    quoteIdentifier(name) {
+        throw new Error(
+            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            } function`
+        );
+    }
+
+    quoteValue(value, type) {
+        throw new Error(
+            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            } function`
+        );
+    }
+
     // features from SQL
     // TODO createIndex
     // TODO updateIndex
@@ -82,21 +96,21 @@ export default class Dal {
         );
     }
 
-    async update(tableName, changes, _where) {
+    async update(tableName, changes, _options = null) {
         throw new Error(
             `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
         );
     }
 
-    async select(from, _where, _groupBy) {
+    async select(columns, from, _options = null) {
         throw new Error(
             `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
         );
     }
 
-    async delete(from, _where, _orderBy, _limit) {
+    async delete(from, _options = null) {
         throw new Error(
             `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`

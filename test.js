@@ -196,29 +196,32 @@ suite('sqlite apply data def', () => {
 
 suite('quoting', async () => {
     const db = await Dal.getDal('sqlite::memory:');
-    test('quote name', (t) => {
-        t.assert.strictEqual(db._quoteName('test'), `"test"`);
+    test('quote identifier', (t) => {
+        t.assert.strictEqual(db.quoteIdentifier('test'), `"test"`);
     })
     test('quote null value', (t) => {
-        t.assert.strictEqual(db._quoteValue(null, 'NULL'), 'NULL');
+        t.assert.strictEqual(db.quoteValue(null, 'NULL'), 'NULL');
     })
     test('quote true value', (t) => {
-        t.assert.strictEqual(db._quoteValue(true, 'NULL'), 'TRUE');
+        t.assert.strictEqual(db.quoteValue(true, 'NULL'), 'TRUE');
     })
     test('quote false value', (t) => {
-        t.assert.strictEqual(db._quoteValue(false, 'NULL'), 'FALSE');
+        t.assert.strictEqual(db.quoteValue(false, 'NULL'), 'FALSE');
     })
     test('quote INTEGER value', (t) => {
-        t.assert.strictEqual(db._quoteValue(1, 'INTEGER'), 1);
+        t.assert.strictEqual(db.quoteValue(1, 'INTEGER'), 1);
     })
     test('quote REAL value', (t) => {
-        t.assert.strictEqual(db._quoteValue(1.0, 'REAL'), 1.0);
+        t.assert.strictEqual(db.quoteValue(1.0, 'REAL'), 1.0);
     })
     test('quote TEXT value', (t) => {
-        t.assert.strictEqual(db._quoteValue('test', 'TEXT'), '\'test\'');
+        t.assert.strictEqual(db.quoteValue('test', 'TEXT'), '\'test\'');
     })
     test('quote BLOB value', (t) => {
-        t.assert.strictEqual(db._quoteValue('test', 'BLOB'), '\'test\'');
+        t.assert.strictEqual(db.quoteValue('test', 'BLOB'), 'x\'test\'');
+    })
+    test('quote TEXT value escaping quote', (t) => {
+        t.assert.strictEqual(db.quoteValue('test\'123', 'TEXT'), '\'test\'\'123\'');
     })
 })
 
@@ -242,9 +245,33 @@ suite('data manipulation', async () => {
     test('get col types', async (t) => {
         t.assert.deepEqual((await db._getColumnTypes('test')), { id: 'INTEGER', name: 'TEXT' });
     })
-    test('insert values', async (t) => {
+    test('insert simple', async (t) => {
         await db.insert('test', { id: 1, name: 'one' });
         t.assert.deepEqual((await db.query('SELECT * FROM "test"')), [{id:1, name: 'one'}])
+    })
+    test('insert into main.test', async (t) => {
+        await db.insert({ table: 'test', schema: 'main' }, { id: 1, name: 'one' });
+        t.assert.deepEqual((await db.query('SELECT * FROM "test"')), [{ id: 1, name: 'one' }])
+    })
+    test('select *', async (t) => {
+        await db.insert('test', { id: 1, name: 'one' });
+        t.assert.deepEqual((await db.select('*', 'test')), [{ id: 1, name: 'one' }])
+    })
+    test('select id', async (t) => {
+        await db.insert('test', { id: 1, name: 'one' });
+        t.assert.deepEqual((await db.select('id', 'test')), [{ id: 1 }])
+    })
+    test('select [id]', async (t) => {
+        await db.insert('test', { id: 1, name: 'one' });
+        t.assert.deepEqual((await db.select(['id'], 'test')), [{ id: 1 }])
+    })
+    test('select [id,name]', async (t) => {
+        await db.insert('test', { id: 1, name: 'one' });
+        t.assert.deepEqual((await db.select(['id', 'name'], 'test')), [{ id: 1, name: 'one' }])
+    })
+    test('select [id,name] from {main.test}', async (t) => {
+        await db.insert('test', { id: 1, name: 'one' });
+        t.assert.deepEqual((await db.select(['id', 'name'], {table: 'test', schema: 'main'})), [{ id: 1, name: 'one' }])
     })
     afterEach(async () => {
         await db.exec('DROP TABLE "test"');

@@ -10,6 +10,8 @@ sqlite3.verbose();
 export default class SqliteDal extends Dal {
     constructor(uri) {
         super(uri);
+
+        this._columnTypeCache = {};
     }
 
     get type() {
@@ -174,6 +176,7 @@ export default class SqliteDal extends Dal {
     }
 
     async createTable(tableName, tableDef) {
+        // TODO create this._columnTypeCache[cacheKey]
         const sql = this._getTableDdl(tableName, tableDef);
         console.debug(sql);
 
@@ -189,7 +192,9 @@ export default class SqliteDal extends Dal {
     }
 
     // TODO alterTable
+    //  TODO delete this._columnTypeCache[cacheKey]
     // TODO dropTable
+    //  TODO delete this._columnTypeCache[cacheKey]
 
     async exec(sql) {
         return new Promise((resolve, reject) => {
@@ -215,11 +220,11 @@ export default class SqliteDal extends Dal {
         });
     }
 
-    _quoteName(name) {
+    quoteIdentifier(name) {
         return `"${name}"`;
     }
 
-    _quoteValue(value, type) {
+    quoteValue(value, type) {
         // convert special values
         if (value === null) {
             return 'NULL';
@@ -231,27 +236,50 @@ export default class SqliteDal extends Dal {
 
         if (['NULL', 'INTEGER', 'REAL'].includes(type)) {
             return value;
+        } else if (type === 'TEXT') {
+            return `'${value.replace(/'/g, "''")}'`;
+        } else if (type === 'BLOB') {
+            // TODO can we assume no ' in BLOB strings?
+            return `x'${value}'`;
         } else {
-            // TODO escape " characters within TEXT/BLOBs
-            return `'${value}'`;
+            throw new Error(`Unknown type: ${type} when quoting value`)
         }
     }
 
-    async _getColumnTypes(tableName, _schemaName=null) {
-        let tableInfo;
-        // TODO cache tableInfo
+    async _getColumnTypes(tableName, _schemaName = null) {
+        let cacheKey, tableInfo;
+
         if (_schemaName) {
-            tableInfo = await this.query(`PRAGMA table_info(${this._quoteName(_schemaName) + '.' + this._quoteName(tableName)})`);
+            // check cache
+            cacheKey = `${_schemaName}.${tableName}`;
+            if (cacheKey in this._columnTypeCache) {
+                console.debug('_getColumnTypes cache hit for ' + cacheKey)
+                return structuredClone(this._columnTypeCache[cacheKey]);
+            }
+
+            tableInfo = await this.query(`PRAGMA table_info(${this.quoteIdentifier(_schemaName) + '.' + this.quoteIdentifier(tableName)})`);
         } else {
-            tableInfo = await this.query(`PRAGMA table_info(${this._quoteName(tableName)})`);
+            // check cache
+            cacheKey = `main.${tableName}`;;
+            if (cacheKey in this._columnTypeCache) {
+                console.debug('_getColumnTypes cache hit for ' + cacheKey)
+                return structuredClone(this._columnTypeCache[cacheKey]);
+            }
+
+            tableInfo = await this.query(`PRAGMA table_info(${this.quoteIdentifier(tableName)})`);
         }
-        console.debug('tableInfo for ' + tableName + JSON.stringify(tableInfo))
+
+        console.debug('Retrieved table_info for ' + tableName + ': ' + JSON.stringify(tableInfo))
 
         // parse column types from results
         let colTypes = {};
         for (let col of tableInfo) {
             colTypes[col.name] = col.type;
         }
+
+        // copy to cache
+        this._columnTypeCache[cacheKey] = structuredClone(colTypes);
+
         return colTypes;
     }
 
@@ -267,7 +295,7 @@ export default class SqliteDal extends Dal {
             let colTypes;
             if (typeof into === 'string') {
                 // it's a table name
-                sql.push(this._quoteName(into));
+                sql.push(this.quoteIdentifier(into));
                 // get column types for quoting
                 colTypes = await this._getColumnTypes(into);
             } else if (typeof into === 'object') {
@@ -276,20 +304,20 @@ export default class SqliteDal extends Dal {
                     throw new Error('insert() into parameter requires table');
                 }
                 if ('schema' in into) {
-                    into_clause = this._quoteName(into.schema);
+                    into_clause = this.quoteIdentifier(into.schema) + '.';
                     // get column types for quoting
                     colTypes = await this._getColumnTypes(into.table, into.schema);
                 } else {
                     // get column types for quoting
                     colTypes = await this._getColumnTypes(into.table);
                 }
-                into_clause += into.table;
+                into_clause += this.quoteIdentifier(into.table);
                 if ('as' in into) {
-                    into_clause += ' AS ' + this._quoteName(into.as);
+                    into_clause += ' AS ' + this.quoteIdentifier(into.as);
                 }
                 sql.push(into_clause);
             } else {
-                throw new Error("Unknown insert() into parameter");
+                throw new Error("Unknown insert() into parameter; should be string or object");
             }
 
             // TODO INSERT INTO table SELECT ...
@@ -303,20 +331,20 @@ export default class SqliteDal extends Dal {
 
                 // pull column names from values[0]
                 const colNames = Object.keys(values[0]).sort();
-                sql.push('(' + colNames.map((v) => { return this._quoteName(v) }).join(', ') + ')');
+                sql.push('(' + colNames.map((v) => { return this.quoteIdentifier(v) }).join(', ') + ')');
 
                 sql.push('VALUES');
                 for (v of values) {
-                    sql.push('(' + colNames.map((col) => { return this._quoteValue(v[col], colTypes[col]) }).join(', ') + ')');
+                    sql.push('(' + colNames.map((col) => { return this.quoteValue(v[col], colTypes[col]) }).join(', ') + ')');
                 }
 
             } else if (typeof values === 'object') {
                 // pull column names from values
                 const colNames = Object.keys(values).sort();
-                sql.push('(' + colNames.map((v) => { return this._quoteName(v) }).join(', ') + ')');
+                sql.push('(' + colNames.map((v) => { return this.quoteIdentifier(v) }).join(', ') + ')');
 
                 sql.push('VALUES');
-                sql.push('(' + colNames.map((col) => { return this._quoteValue(values[col], colTypes[col]) }).join(', ') + ')');
+                sql.push('(' + colNames.map((col) => { return this.quoteValue(values[col], colTypes[col]) }).join(', ') + ')');
             } else {
                 throw new Error('insert() values is not an array of objects or one object')
             }
@@ -336,13 +364,85 @@ export default class SqliteDal extends Dal {
         })
     }
 
-    // async update(tableName, changes, _where) {
+    // TODO
+    // async update(tableName, changes, _options = null) {
     // }
 
-    // async select(from, _where, _groupBy) {
-    // }
+    async select(columns, from, _options = null) {
+        return new Promise(async (resolve, reject) => {
+            let sql = [];
 
-    // async delete(from, _where, _orderBy, _limit) {
+            // TODO WITH
+            // TODO VALUES clause
+            // TODO compound-operator
+
+            sql.push('SELECT');
+            // TODO DISTINCT
+            // TODO ALL
+
+            if (Array.isArray(columns)) {
+                sql.push(columns.map((v) => { return this.quoteIdentifier(v) }).join(', '));
+            } else if (typeof columns === 'string') {
+                if (columns === '*') {
+                    sql.push(columns);
+                } else {
+                    sql.push(this.quoteIdentifier(columns));
+                }
+            } else {
+                throw new Error(`Unsupported columns parameter; array & string are supported`)
+            }
+
+            sql.push('FROM')
+            let colTypes;
+            if (typeof from === 'string') {
+                // it's a table name
+                sql.push(this.quoteIdentifier(from));
+                // get column types for quoting
+                colTypes = await this._getColumnTypes(from);
+            } else if (typeof from === 'object') {
+                // TODO add join-clause/multi-table support
+                let from_clause;
+                if (!('table' in from)) {
+                    throw new Error('select() from parameter requires table');
+                }
+                if ('schema' in from) {
+                    from_clause = this.quoteIdentifier(from.schema) + '.';
+                    // get column types for quoting
+                    colTypes = await this._getColumnTypes(from.table, from.schema);
+                } else {
+                    // get column types for quoting
+                    colTypes = await this._getColumnTypes(from.table);
+                }
+                from_clause += this.quoteIdentifier( from.table);
+                if ('as' in from) {
+                    from_clause += ' AS ' + this.quoteIdentifier(from.as);
+                }
+                sql.push(from_clause);
+            } else {
+                throw new Error("Unknown select() from parameter; should be string or object");
+            }
+
+            // TODO WHERE
+            //  quote with colTypes
+            // TODO GROUP BY
+            // TODO WINDOW
+            // TODO ORDER BY
+            // TODO LIMIT
+
+            sql = sql.join(' ');
+            console.debug(sql);
+            this.connection.all(sql, (err, rows) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(rows);
+                }
+            })
+        })
+    }
+
+    // TODO
+    // async delete(from, _options = null) {
     // }
 
     // features from SQLite
