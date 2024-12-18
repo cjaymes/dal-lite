@@ -194,6 +194,8 @@ suite('sqlite apply data def', () => {
         t.assert.rejects(async () => {
             return db.query('SELECT * FROM "test";');
         })
+        // check cache was updated
+        t.assert.strictEqual(db._getTableCacheKey('test') in db._columnTypeCache, false)
     })
 })
 

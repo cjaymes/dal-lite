@@ -209,10 +209,10 @@ export default class SqliteDal extends Dal {
 
     // TODO alterTable
     //  TODO delete this._columnTypeCache[cacheKey]
-    // TODO dropTable
-    //  TODO delete this._columnTypeCache[cacheKey]
+
     async dropTable(table) {
         return new Promise((resolve, reject) => {
+            delete this._columnTypeCache[this._getTableCacheKey(table)];
             this.connection.exec(`DROP TABLE ${this._getTableSpec(table) }`, (err) => {
                 if (err) {
                     reject(err);
@@ -273,31 +273,34 @@ export default class SqliteDal extends Dal {
         }
     }
 
-    async _getColumnTypes(table) {
-        let tableInfo;
-
-        let cacheKey;
+    _getTableCacheKey(table) {
         if (Array.isArray(table) && table.length === 1) {
-            cacheKey = this.quoteIdentifier(table[1]);
+            return this.quoteIdentifier(table[1]);
         } else if (Array.isArray(table) && table.length === 2) {
             if (table[0] !== 'main') {
                 throw new Error(`Can't get table_info for non-main table: ${this.quoteIdentifier(table[0])}.${this.quoteIdentifier(table[1])}`)
             } else {
-                cacheKey = `${this.quoteIdentifier(table[1])}`;
+                return `${this.quoteIdentifier(table[1])}`;
             }
         } else if ((typeof table) === 'object' && 'schema' in table && 'table' in table) {
             if (table.schema !== 'main') {
                 throw new Error(`Can't get table_info for non-main table: ${this.quoteIdentifier(table.schema)}.${this.quoteIdentifier(table.table)}`)
             } else {
-                cacheKey = `${this.quoteIdentifier(table.table)}`;
+                return `${this.quoteIdentifier(table.table)}`;
             }
         } else if ((typeof table) === 'object' && 'table' in table) {
-            cacheKey = this.quoteIdentifier(table.table);
+            return this.quoteIdentifier(table.table);
         } else if ((typeof table) === 'string') {
-            cacheKey = this.quoteIdentifier(table);
+            return this.quoteIdentifier(table);
         } else {
             throw new Error("Invalid table specifier: must be array (of length 1 or 2), object (with table and optionally schema keys) or string");
         }
+    }
+
+    async _getColumnTypes(table) {
+        let tableInfo;
+
+        let cacheKey = this._getTableCacheKey(table);
 
         if (cacheKey in this._columnTypeCache) {
             console.debug('_getColumnTypes cache hit for ' + cacheKey)
