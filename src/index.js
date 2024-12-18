@@ -35,7 +35,7 @@ export default class Dal {
         );
     }
 
-    async alterTable(tableName, tableDef) {
+    async alterTable(tableName, defChanges) {
         throw new Error(
             `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
@@ -75,7 +75,7 @@ export default class Dal {
         );
     }
 
-    async insert(values, into) {
+    async insert(into, values) {
         throw new Error(
             `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`

@@ -2,6 +2,8 @@
 
 import sqlite3 from "sqlite3";
 import Dal from "../index.js";
+import { resolve } from "path";
+import { rejects } from "assert";
 
 sqlite3.verbose();
 
@@ -10,7 +12,7 @@ export default class SqliteDal extends Dal {
         super(uri);
     }
 
-    get_type() {
+    get type() {
         return "sqlite3";
     }
 
@@ -186,10 +188,8 @@ export default class SqliteDal extends Dal {
         });
     }
 
-    async alterTable(tableName, tableDef) {
-        console.log(`ALTER TABLE ${tableName}`);
-        throw new Error("Unimplemented")
-    }
+    // TODO alterTable
+    // TODO dropTable
 
     async exec(sql) {
         return new Promise((resolve, reject) => {
@@ -214,6 +214,136 @@ export default class SqliteDal extends Dal {
             });
         });
     }
+
+    _quoteName(name) {
+        return `"${name}"`;
+    }
+
+    _quoteValue(value, type) {
+        // convert special values
+        if (value === null) {
+            return 'NULL';
+        } else if (value === true) {
+            return 'TRUE';
+        } else if (value === false) {
+            return 'FALSE';
+        }
+
+        if (['NULL', 'INTEGER', 'REAL'].includes(type)) {
+            return value;
+        } else {
+            // TODO escape " characters within TEXT/BLOBs
+            return `"${value}"`;
+        }
+    }
+
+    async _getColumnTypes(tableName, _schemaName=null) {
+        let tableInfo;
+        // TODO cache tableInfo
+        if (_schemaName) {
+            tableInfo = await this.query(`PRAGMA table_info(${this._quoteName(_schemaName) + '.' + this._quoteName(tableName)})`);
+        } else {
+            tableInfo = await this.query(`PRAGMA table_info(${this._quoteName(tableName)})`);
+        }
+        console.debug('tableInfo for ' + tableName + JSON.stringify(tableInfo))
+
+        // parse column types from results
+        let colTypes = {};
+        for (let col of tableInfo) {
+            colTypes[col.name] = col.type;
+        }
+        return colTypes;
+    }
+
+    async insert(into, values) {
+        return new Promise(async (resolve, reject) => {
+            let sql = ['INSERT'];
+
+            // TODO WITH
+            // TODO REPLACE?
+            // TODO OR ABORT|FAIL|IGNORE|REPLACE|ROLLBACK
+
+            sql.push('INTO');
+            let colTypes;
+            if (typeof into === 'string') {
+                // it's a table name
+                sql.push(this._quoteName(into));
+                // get column types for quoting
+                colTypes = await this._getColumnTypes(into);
+            } else if (typeof into === 'object') {
+                let into_clause;
+                if (!('table' in into)) {
+                    throw new Error('insert() into parameter requires table');
+                }
+                if ('schema' in into) {
+                    into_clause = this._quoteName(into.schema);
+                    // get column types for quoting
+                    colTypes = await this._getColumnTypes(into.table, into.schema);
+                } else {
+                    // get column types for quoting
+                    colTypes = await this._getColumnTypes(into.table);
+                }
+                into_clause += into.table;
+                if ('as' in into) {
+                    into_clause += ' AS ' + this._quoteName(into.as);
+                }
+                sql.push(into_clause);
+            } else {
+                throw new Error("Unknown insert() into parameter");
+            }
+
+            // TODO INSERT INTO table SELECT ...
+            // TODO INSERT INTO table DEFAULT VALUES;
+
+            if (Array.isArray(values)) {
+                if (values.length <= 0 || !(typeof values[0] === 'object')) {
+                    // TODO check all the values?
+                    throw new Error('insert() values is not an array of objects or one object')
+                }
+
+                // pull column names from values[0]
+                const colNames = Object.keys(values[0]).sort();
+                sql.push('(' + colNames.map((v) => { return this._quoteName(v) }).join(', ') + ')');
+
+                sql.push('VALUES');
+                for (v of values) {
+                    sql.push('(' + colNames.map((col) => { return this._quoteValue(v[col], colTypes[col]) }).join(', ') + ')');
+                }
+
+            } else if (typeof values === 'object') {
+                // pull column names from values
+                const colNames = Object.keys(values).sort();
+                sql.push('(' + colNames.map((v) => { return this._quoteName(v) }).join(', ') + ')');
+
+                sql.push('VALUES');
+                sql.push('(' + colNames.map((col) => { return this._quoteValue(values[col], colTypes[col]) }).join(', ') + ')');
+            } else {
+                throw new Error('insert() values is not an array of objects or one object')
+            }
+
+            // TODO upsert-clause
+            // TODO returning-clause?
+
+            sql = sql.join(' ');
+            console.debug(sql);
+            this.connection.run(sql, function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.lastID);
+                }
+            })
+        })
+    }
+
+    // async update(tableName, changes, _where) {
+    // }
+
+    // async select(from, _where, _groupBy) {
+    // }
+
+    // async delete(from, _where, _orderBy, _limit) {
+    // }
 
     // features from SQLite
     // TODO strict type checking

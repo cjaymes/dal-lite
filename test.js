@@ -1,4 +1,4 @@
-import { suite, test } from 'node:test';
+import { afterEach, beforeEach, suite, test } from 'node:test';
 import { access, constants, unlink } from 'node:fs/promises';
 import Dal from "./src/index.js";
 
@@ -184,12 +184,69 @@ suite('sqlite apply data def', () => {
         }
         await db.applyDataDefinition(def);
 
-        const pragma = await db.query('PRAGMA table_info([test]);');
-        t.assert.equal(pragma[0].cid, 0);
-        t.assert.equal(pragma[0].dflt_value, null);
-        t.assert.equal(pragma[0].name, 'id');
-        t.assert.equal(pragma[0].notnull, 0);
-        t.assert.equal(pragma[0].pk, 0);
-        t.assert.equal(pragma[0].type, 'INTEGER');
+        const tableInfo = await db.query('PRAGMA table_info([test]);');
+        t.assert.equal(tableInfo[0].cid, 0);
+        t.assert.equal(tableInfo[0].dflt_value, null);
+        t.assert.equal(tableInfo[0].name, 'id');
+        t.assert.equal(tableInfo[0].notnull, 0);
+        t.assert.equal(tableInfo[0].pk, 0);
+        t.assert.equal(tableInfo[0].type, 'INTEGER');
+    })
+})
+
+suite('quoting', async () => {
+    const db = await Dal.getDal('sqlite::memory:');
+    test('quote name', (t) => {
+        t.assert.strictEqual(db._quoteName('test'), `"test"`);
+    })
+    test('quote null value', (t) => {
+        t.assert.strictEqual(db._quoteValue(null, 'NULL'), 'NULL');
+    })
+    test('quote true value', (t) => {
+        t.assert.strictEqual(db._quoteValue(true, 'NULL'), 'TRUE');
+    })
+    test('quote false value', (t) => {
+        t.assert.strictEqual(db._quoteValue(false, 'NULL'), 'FALSE');
+    })
+    test('quote INTEGER value', (t) => {
+        t.assert.strictEqual(db._quoteValue(1, 'INTEGER'), 1);
+    })
+    test('quote REAL value', (t) => {
+        t.assert.strictEqual(db._quoteValue(1.0, 'REAL'), 1.0);
+    })
+    test('quote TEXT value', (t) => {
+        t.assert.strictEqual(db._quoteValue('test', 'TEXT'), '"test"');
+    })
+    test('quote BLOB value', (t) => {
+        t.assert.strictEqual(db._quoteValue('test', 'BLOB'), '"test"');
+    })
+})
+
+suite('data manipulation', async () => {
+    const db = await Dal.getDal('sqlite::memory:');
+    await db.connect();
+    const def = {
+        tables: {
+            test: {
+                columns: {
+                    id: { type: 'INTEGER' },
+                    name: {type: 'TEXT'}
+                }
+            }
+        }
+    }
+
+    beforeEach(async () => {
+        await db.applyDataDefinition(def);
+    })
+    test('get col types', async (t) => {
+        t.assert.deepEqual((await db._getColumnTypes('test')), { id: 'INTEGER', name: 'TEXT' });
+    })
+    test('insert values', async (t) => {
+        await db.insert('test', { id: 1, name: 'one' });
+        t.assert.deepEqual((await db.query('SELECT * FROM "test"')), [{id:1, name: 'one'}])
+    })
+    afterEach(async () => {
+        await db.exec('DROP TABLE "test"');
     })
 })

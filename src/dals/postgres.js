@@ -7,7 +7,7 @@ class PgDal extends Dal {
         super(uri);
     }
 
-    get_type() {
+    get type() {
         return 'postgres'
     }
 
