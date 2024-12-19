@@ -16,49 +16,56 @@ export default class Dal {
 
     async connect() {
         throw new Error(
-            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            `Child class ${this.constructor.name} doesn't implement ${
+                new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
         );
     }
 
     async tableExists(tableName) {
         throw new Error(
-            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            `Child class ${this.constructor.name} doesn't implement ${
+                new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
         );
     }
 
     async createTable(tableName, tableDef) {
         throw new Error(
-            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            `Child class ${this.constructor.name} doesn't implement ${
+                new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
         );
     }
 
     async alterTable(tableName, defChanges) {
         throw new Error(
-            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            `Child class ${this.constructor.name} doesn't implement ${
+                new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
         );
     }
 
     async dropTable(tableName) {
         throw new Error(
-            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            `Child class ${this.constructor.name} doesn't implement ${
+                new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
         );
     }
 
     quoteIdentifier(name) {
         throw new Error(
-            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            `Child class ${this.constructor.name} doesn't implement ${
+                new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
         );
     }
 
     quoteValue(value, type) {
         throw new Error(
-            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            `Child class ${this.constructor.name} doesn't implement ${
+                new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
         );
     }
@@ -77,42 +84,48 @@ export default class Dal {
 
     async exec(sql) {
         throw new Error(
-            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            `Child class ${this.constructor.name} doesn't implement ${
+                new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
         );
     }
 
     async query(sql) {
         throw new Error(
-            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            `Child class ${this.constructor.name} doesn't implement ${
+                new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
         );
     }
 
     async insert(into, values) {
         throw new Error(
-            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            `Child class ${this.constructor.name} doesn't implement ${
+                new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
         );
     }
 
     async update(tableName, changes, _options = null) {
         throw new Error(
-            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            `Child class ${this.constructor.name} doesn't implement ${
+                new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
         );
     }
 
     async select(columns, from, _options = null) {
         throw new Error(
-            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            `Child class ${this.constructor.name} doesn't implement ${
+                new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
         );
     }
 
     async delete(from, _options = null) {
         throw new Error(
-            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            `Child class ${this.constructor.name} doesn't implement ${
+                new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
         );
     }
@@ -121,10 +134,7 @@ export default class Dal {
         if ("tables" in def) {
             for (let tableName in def.tables) {
                 // TODO CREATE IF NOT EXITS?
-                await this.createTable(
-                    tableName,
-                    def.tables[tableName]
-                );
+                await this.createTable(tableName, def.tables[tableName]);
             }
         }
         if ("indexes" in def) {
@@ -133,23 +143,24 @@ export default class Dal {
         if ("views" in def) {
             throw new Error("TODO def views");
         }
-
     }
 
     async close() {
         throw new Error(
-            `Child class ${this.constructor.name} doesn't implement ${new Error().stack.split("\n")[1].trim().split(" ")[1]
+            `Child class ${this.constructor.name} doesn't implement ${
+                new Error().stack.split("\n")[1].trim().split(" ")[1]
             } function`
         );
     }
 
-    static async getDal(uri) {
+    static async getDal(uri, _options = null) {
+        let dal;
         if (uri.startsWith("sqlite:") || uri.startsWith("sqlite3:")) {
-            return import("./dals/sqlite3.js").then((module) => {
+            dal = await import("./dals/sqlite3.js").then((module) => {
                 return new module.default(uri);
             });
         } else if (uri.startsWith("postgres:")) {
-            return import("./dals/postgres.js").then((module) => {
+            dal = await import("./dals/postgres.js").then((module) => {
                 return new module.default(uri);
             });
         } else {
@@ -157,7 +168,13 @@ export default class Dal {
                 `Unknown database connection type in connection string: ${uri}`
             );
         }
-        // TODO auto-connect?
+
+        if (_options && "connect" in _options && !_options.connect) {
+            console.info("Not auto-connecting new DAL");
+            return Promise.resolve(dal);
+        } else {
+            return dal.connect();
+        }
         // TODO auto-update schema?
     }
 }

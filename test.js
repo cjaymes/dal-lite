@@ -18,7 +18,6 @@ suite("sqlite3 in-memory", async () => {
 suite("sqlite3 file", async () => {
     test("file creation", async (t) => {
         const db = await Dal.getDal("sqlite:test.sqlite");
-        await db.connect();
         await db.close();
 
         t.assert.strictEqual(
@@ -30,7 +29,6 @@ suite("sqlite3 file", async () => {
     });
     test("exec & table exists", async (t) => {
         const db = await Dal.getDal("sqlite:test.sqlite");
-        await db.connect();
         await db.exec(
             'CREATE TABLE "config" ("name" TEXT NOT NULL, "value" TEXT NOT NULL, PRIMARY KEY ("name"))'
         );
@@ -42,7 +40,6 @@ suite("sqlite3 file", async () => {
     });
     test("create table", async (t) => {
         const db = await Dal.getDal("sqlite:test.sqlite");
-        await db.connect();
         await db.createTable("test", { columns: { id: { type: "INTEGER" } } });
 
         t.assert.strictEqual(await db.tableExists("test"), true);
@@ -239,14 +236,12 @@ suite("sqlite apply data def", () => {
     };
     test("create table", async (t) => {
         const db = await Dal.getDal("sqlite::memory:");
-        await db.connect();
         await db.applyDataDefinition(def);
 
         t.assert.strictEqual(await db.tableExists("test"), true);
     });
     test("create table table_info", async (t) => {
         const db = await Dal.getDal("sqlite::memory:");
-        await db.connect();
         await db.applyDataDefinition(def);
 
         const tableInfo = await db.query("PRAGMA table_info([test]);");
@@ -259,7 +254,6 @@ suite("sqlite apply data def", () => {
     });
     test("drop table", async (t) => {
         const db = await Dal.getDal("sqlite::memory:");
-        await db.connect();
         await db.applyDataDefinition(def);
 
         t.assert.doesNotReject(async () => {
@@ -309,7 +303,6 @@ suite("quoting", async () => {
 
 suite("data manipulation", async () => {
     const db = await Dal.getDal("sqlite::memory:");
-    await db.connect();
     const def = {
         tables: {
             test: {
@@ -407,23 +400,23 @@ suite("data manipulation", async () => {
         );
     });
     test("select id group by 'name'", async (t) => {
-        for (let i=0; i < 10; i++) {
+        for (let i = 0; i < 10; i++) {
             await db.insert("test", { id: i, name: `test 1` });
         }
-        for (let i=10; i < 20; i++) {
+        for (let i = 10; i < 20; i++) {
             await db.insert("test", { id: i, name: `test 2` });
         }
         t.assert.deepEqual(
             await db.select("id", "test", {
-                groupBy: 'name',
+                groupBy: "name",
             }),
             [
                 {
-                    id: 0
+                    id: 0,
                 },
                 {
-                    id: 10
-                }
+                    id: 10,
+                },
             ]
         );
     });
@@ -436,15 +429,15 @@ suite("data manipulation", async () => {
         }
         t.assert.deepEqual(
             await db.select("id", "test", {
-                groupBy: ['name'],
+                groupBy: ["name"],
             }),
             [
                 {
-                    id: 0
+                    id: 0,
                 },
                 {
-                    id: 10
-                }
+                    id: 10,
+                },
             ]
         );
     });
@@ -454,39 +447,39 @@ suite("data manipulation", async () => {
         }
         t.assert.deepEqual(
             await db.select("id", "test", {
-                orderBy: 'name',
+                orderBy: "name",
             }),
             [
                 {
-                    id: 9
+                    id: 9,
                 },
                 {
-                    id: 0
+                    id: 0,
                 },
                 {
-                    id: 8
+                    id: 8,
                 },
                 {
-                    id: 7
+                    id: 7,
                 },
                 {
-                    id: 6
+                    id: 6,
                 },
                 {
-                    id: 5
+                    id: 5,
                 },
                 {
-                    id: 4
+                    id: 4,
                 },
                 {
-                    id: 3
+                    id: 3,
                 },
                 {
-                    id: 2
+                    id: 2,
                 },
                 {
-                    id: 1
-                }
+                    id: 1,
+                },
             ]
         );
     });
@@ -496,39 +489,39 @@ suite("data manipulation", async () => {
         }
         t.assert.deepEqual(
             await db.select("id", "test", {
-                orderBy: ['name'],
+                orderBy: ["name"],
             }),
             [
                 {
-                    id: 9
+                    id: 9,
                 },
                 {
-                    id: 0
+                    id: 0,
                 },
                 {
-                    id: 8
+                    id: 8,
                 },
                 {
-                    id: 7
+                    id: 7,
                 },
                 {
-                    id: 6
+                    id: 6,
                 },
                 {
-                    id: 5
+                    id: 5,
                 },
                 {
-                    id: 4
+                    id: 4,
                 },
                 {
-                    id: 3
+                    id: 3,
                 },
                 {
-                    id: 2
+                    id: 2,
                 },
                 {
-                    id: 1
-                }
+                    id: 1,
+                },
             ]
         );
     });
@@ -542,11 +535,11 @@ suite("data manipulation", async () => {
             }),
             [
                 {
-                    id: 0
+                    id: 0,
                 },
                 {
-                    id: 1
-                }
+                    id: 1,
+                },
             ]
         );
     });
@@ -557,15 +550,15 @@ suite("data manipulation", async () => {
         t.assert.deepEqual(
             await db.select("id", "test", {
                 limit: 2,
-                offset: 2
+                offset: 2,
             }),
             [
                 {
-                    id: 2
+                    id: 2,
                 },
                 {
-                    id: 3
-                }
+                    id: 3,
+                },
             ]
         );
     });
