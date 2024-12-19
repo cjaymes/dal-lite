@@ -1,36 +1,37 @@
 {
-  "name": "dal-lite",
-  "version": "0.1.0",
-  "description": "A lightweight database abstraction layer",
-  "main": "src/index.js",
-  "type": "module",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "test": "node test.js",
-    "build": "npx tsc -p tsconfig.json"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/cjaymes/dal-lite.git"
-  },
-  "keywords": [
-    "database",
-    "dal",
-    "sql"
-  ],
-  "author": "Casey Jaymes",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/cjaymes/dal-lite/issues"
-  },
-  "homepage": "https://github.com/cjaymes/dal-lite#readme",
-  "dependencies": {
-    "pg": "^8.13.1",
-    "sqlite3": "^5.1.7"
-  },
-  "devDependencies": {
-    "@types/node": "^22.10.2",
-    "@types/pg": "^8.11.10",
-    "typescript": "^5.7.2"
-  }
+    "name": "dal-lite",
+    "version": "0.1.1",
+    "description": "A lightweight database abstraction layer",
+    "main": "src/index.js",
+    "type": "module",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "test": "node test.js",
+        "build": "npx tsc -p tsconfig.json; node node_modules/jsdoc/jsdoc.js -d doc ."
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/cjaymes/dal-lite.git"
+    },
+    "keywords": [
+        "database",
+        "dal",
+        "sql"
+    ],
+    "author": "Casey Jaymes",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/cjaymes/dal-lite/issues"
+    },
+    "homepage": "https://github.com/cjaymes/dal-lite#readme",
+    "dependencies": {
+        "pg": "^8.13.1",
+        "sqlite3": "^5.1.7"
+    },
+    "devDependencies": {
+        "@types/node": "^22.10.2",
+        "@types/pg": "^8.11.10",
+        "jsdoc": "^4.0.4",
+        "typescript": "^5.7.2"
+    }
 }

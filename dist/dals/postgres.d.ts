@@ -1,6 +1,7 @@
 export default PgDal;
 declare class PgDal extends Dal {
-    get_type(): string;
+    constructor(uri: any);
+    get type(): string;
     connect(): Promise<this>;
     connection: any;
     finalize(): Promise<void>;

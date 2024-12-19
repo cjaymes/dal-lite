@@ -3,6 +3,10 @@
 import { readFile } from "fs/promises";
 
 export default class Dal {
+    /**
+     * @constructor
+     * @param {string} uri  - Connection string used to attach to the database
+     */
     constructor(uri) {
         // TODO cache multiple connections
         // singleton
@@ -14,6 +18,9 @@ export default class Dal {
         this.uri = uri;
     }
 
+    /**
+     * Connects the specified database. This is only necessary if you specified connect=false in the options to getDal
+     */
     async connect() {
         throw new Error(
             `Child class ${this.constructor.name} doesn't implement ${
@@ -171,7 +178,7 @@ export default class Dal {
 
         if (_options && "connect" in _options && !_options.connect) {
             console.info("Not auto-connecting new DAL");
-            return Promise.resolve(dal);
+            return dal;
         } else {
             return dal.connect();
         }

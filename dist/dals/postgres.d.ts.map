@@ -1,1 +1,1 @@
-{"version":3,"file":"postgres.d.ts","sourceRoot":"","sources":["../../src/dals/postgres.js"],"names":[],"mappings":";AAGA;IAKI,mBAEC;IAED,yBAMC;IAHG,gBAAkD;IAKtD,0BAGC;CACJ;gBAvBe,aAAa"}
+{"version":3,"file":"postgres.d.ts","sourceRoot":"","sources":["../../src/dals/postgres.js"],"names":[],"mappings":";AAIA;IACI,sBAEC;IAED,mBAEC;IAED,yBAOC;IAJG,gBAA0D;IAQ9D,0BAGC;CACJ;gBA1Be,aAAa"}

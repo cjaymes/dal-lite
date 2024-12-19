@@ -23,7 +23,7 @@ export default class SqliteDal extends Dal {
             this.connection instanceof SqliteDal
         ) {
             console.warn(`Database is already connected...`);
-            return Promise.resolve(this);
+            return this;
         }
 
         const filename = this.uri.split(":", 2)[1];
