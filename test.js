@@ -433,6 +433,18 @@ suite("data manipulation", async () => {
             { id: 3, name: "two" },
         ]);
     });
+    test("update where", async (t) => {
+        await db.insert("test", { id: 1, name: "one" });
+        await db.insert("test", { id: 2, name: "two" });
+        t.assert.strictEqual(
+            await db.update("test", { id: 3 }, { where: "id=1" }),
+            1
+        );
+        t.assert.deepEqual(await db.select("*", "test"), [
+            { id: 3, name: "one" },
+            { id: 2, name: "two" },
+        ]);
+    });
 
     test("delete 1 row", async (t) => {
         await db.insert("test", { id: 1, name: "one" });
@@ -440,7 +452,16 @@ suite("data manipulation", async () => {
     });
     test("delete 2 row", async (t) => {
         await db.insert("test", { id: 1, name: "one" });
-        t.assert.strictEqual(await db.delete("test"), 1);
+        await db.insert("test", { id: 2, name: "two" });
+        t.assert.strictEqual(await db.delete("test"), 2);
+    });
+    test("delete where", async (t) => {
+        await db.insert("test", { id: 1, name: "one" });
+        await db.insert("test", { id: 2, name: "two" });
+        t.assert.strictEqual(await db.delete("test", { where: "id=1" }), 1);
+        t.assert.deepEqual(await db.select("*", "test"), [
+            { id: 2, name: "two" },
+        ]);
     });
 
     afterEach(async () => {

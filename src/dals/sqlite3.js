@@ -508,6 +508,7 @@ export default class SqliteDal extends Dal {
     async update(table, changes, _options = null) {
         return new Promise(async (resolve, reject) => {
             // TODO WITH
+
             let sql = ["UPDATE"];
 
             // TODO OR ABORT|FAIL|IGNORE|REPLACE|ROLLBACK
@@ -549,7 +550,11 @@ export default class SqliteDal extends Dal {
             sql.push(colAssignments.join(", "));
 
             // TODO FROM
-            // TODO WHERE
+
+            const whereClause = this._getWhereClause(_options, colTypes);
+            if (whereClause) {
+                sql.push(whereClause);
+            }
 
             sql = sql.join(" ");
             console.debug(sql);
@@ -636,6 +641,7 @@ export default class SqliteDal extends Dal {
             if (whereClause) {
                 sql.push(whereClause);
             }
+
             // const groupByClause = this._getGroupByClause(_options, colTypes);
             // if (groupByClause) {
             //     sql.push(groupByClause);
@@ -675,8 +681,11 @@ export default class SqliteDal extends Dal {
             // get column types for quoting
             let colTypes = await this._getColumnTypes(table);
 
-            // TODO WHERE
-            //  quote with colTypes
+            const whereClause = this._getWhereClause(_options, colTypes);
+            if (whereClause) {
+                sql.push(whereClause);
+            }
+
             // TODO RETURNING
 
             sql = sql.join(" ");
