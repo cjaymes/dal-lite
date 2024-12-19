@@ -470,6 +470,7 @@ export default class SqliteDal extends Dal {
             // TODO compound-operator
 
             sql.push('SELECT');
+
             // TODO DISTINCT
             // TODO ALL
 
@@ -492,12 +493,25 @@ export default class SqliteDal extends Dal {
             // get column types for quoting
             let colTypes = await this._getColumnTypes(from);
 
-            // TODO WHERE
-            //  quote with colTypes
-            // TODO GROUP BY
+            const whereClause = this._getWhereClause(_options, colTypes);
+            if (whereClause) {
+                sql.push(whereClause);
+            }
+            const groupByClause = this._getGroupByClause(_options, colTypes);
+            if (groupByClause) {
+                sql.push(groupByClause);
+            }
+
             // TODO WINDOW
-            // TODO ORDER BY
-            // TODO LIMIT
+
+            const orderByClause = this._getOrderByClause(_options, colTypes);
+            if (orderByClause) {
+                sql.push(orderByClause);
+            }
+            const limitClause = this._getLimitClause(_options, colTypes);
+            if (limitClause) {
+                sql.push(limitClause);
+            }
 
             sql = sql.join(' ');
             console.debug(sql);
