@@ -406,6 +406,169 @@ suite("data manipulation", async () => {
             [{ id: 1 }]
         );
     });
+    test("select id group by 'name'", async (t) => {
+        for (let i=0; i < 10; i++) {
+            await db.insert("test", { id: i, name: `test 1` });
+        }
+        for (let i=10; i < 20; i++) {
+            await db.insert("test", { id: i, name: `test 2` });
+        }
+        t.assert.deepEqual(
+            await db.select("id", "test", {
+                groupBy: 'name',
+            }),
+            [
+                {
+                    id: 0
+                },
+                {
+                    id: 10
+                }
+            ]
+        );
+    });
+    test("select id group by [name]", async (t) => {
+        for (let i = 0; i < 10; i++) {
+            await db.insert("test", { id: i, name: `test 1` });
+        }
+        for (let i = 10; i < 20; i++) {
+            await db.insert("test", { id: i, name: `test 2` });
+        }
+        t.assert.deepEqual(
+            await db.select("id", "test", {
+                groupBy: ['name'],
+            }),
+            [
+                {
+                    id: 0
+                },
+                {
+                    id: 10
+                }
+            ]
+        );
+    });
+    test("select id order by 'name'", async (t) => {
+        for (let i = 0; i < 10; i++) {
+            await db.insert("test", { id: i, name: `test ${10 - i}` });
+        }
+        t.assert.deepEqual(
+            await db.select("id", "test", {
+                orderBy: 'name',
+            }),
+            [
+                {
+                    id: 9
+                },
+                {
+                    id: 0
+                },
+                {
+                    id: 8
+                },
+                {
+                    id: 7
+                },
+                {
+                    id: 6
+                },
+                {
+                    id: 5
+                },
+                {
+                    id: 4
+                },
+                {
+                    id: 3
+                },
+                {
+                    id: 2
+                },
+                {
+                    id: 1
+                }
+            ]
+        );
+    });
+    test("select id order by ['name']", async (t) => {
+        for (let i = 0; i < 10; i++) {
+            await db.insert("test", { id: i, name: `test ${10 - i}` });
+        }
+        t.assert.deepEqual(
+            await db.select("id", "test", {
+                orderBy: ['name'],
+            }),
+            [
+                {
+                    id: 9
+                },
+                {
+                    id: 0
+                },
+                {
+                    id: 8
+                },
+                {
+                    id: 7
+                },
+                {
+                    id: 6
+                },
+                {
+                    id: 5
+                },
+                {
+                    id: 4
+                },
+                {
+                    id: 3
+                },
+                {
+                    id: 2
+                },
+                {
+                    id: 1
+                }
+            ]
+        );
+    });
+    test("select id limit", async (t) => {
+        for (let i = 0; i < 10; i++) {
+            await db.insert("test", { id: i, name: `test ${i}` });
+        }
+        t.assert.deepEqual(
+            await db.select("id", "test", {
+                limit: 2,
+            }),
+            [
+                {
+                    id: 0
+                },
+                {
+                    id: 1
+                }
+            ]
+        );
+    });
+    test("select id limit, offset", async (t) => {
+        for (let i = 0; i < 10; i++) {
+            await db.insert("test", { id: i, name: `test ${i}` });
+        }
+        t.assert.deepEqual(
+            await db.select("id", "test", {
+                limit: 2,
+                offset: 2
+            }),
+            [
+                {
+                    id: 2
+                },
+                {
+                    id: 3
+                }
+            ]
+        );
+    });
 
     test("update id", async (t) => {
         await db.insert("test", { id: 1, name: "one" });

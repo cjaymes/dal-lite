@@ -23,8 +23,8 @@ export default class SqliteDal extends Dal {
             this.connection = new sqlite3.Database(
                 filename,
                 sqlite3.OPEN_READWRITE |
-                    sqlite3.OPEN_CREATE |
-                    sqlite3.OPEN_FULLMUTEX,
+                sqlite3.OPEN_CREATE |
+                sqlite3.OPEN_FULLMUTEX,
                 (err) => {
                     if (err) {
                         reject(err);
@@ -52,8 +52,8 @@ export default class SqliteDal extends Dal {
                         }
                         resolve(
                             row !== undefined &&
-                                Object.hasOwn(row, "name") &&
-                                row.name == tableName
+                            Object.hasOwn(row, "name") &&
+                            row.name == tableName
                         );
                     }
                 }
@@ -156,13 +156,12 @@ export default class SqliteDal extends Dal {
         }
 
         if (Array.isArray(foreignKeyDef.references.columns)) {
-            sql += ` REFERENCES "${
-                foreignKeyDef.references.table
-            }" (${foreignKeyDef.references.columns
-                .map((v) => {
-                    return `"${v}"`;
-                })
-                .join(",")})`;
+            sql += ` REFERENCES "${foreignKeyDef.references.table
+                }" (${foreignKeyDef.references.columns
+                    .map((v) => {
+                        return `"${v}"`;
+                    })
+                    .join(",")})`;
         } else if (typeof foreignKeyDef.references.columns === "string") {
             sql += ` REFERENCES "${foreignKeyDef.references.table}" ("${foreignKeyDef.references.columns}")`;
         } else {
@@ -373,9 +372,9 @@ export default class SqliteDal extends Dal {
 
         console.debug(
             "Retrieved table_info for " +
-                cacheKey +
-                ": " +
-                JSON.stringify(tableInfo)
+            cacheKey +
+            ": " +
+            JSON.stringify(tableInfo)
         );
 
         // parse column types from results
@@ -433,12 +432,12 @@ export default class SqliteDal extends Dal {
                 const colNames = Object.keys(values[0]).sort();
                 sql.push(
                     "(" +
-                        colNames
-                            .map((v) => {
-                                return this.quoteIdentifier(v);
-                            })
-                            .join(", ") +
-                        ")"
+                    colNames
+                        .map((v) => {
+                            return this.quoteIdentifier(v);
+                        })
+                        .join(", ") +
+                    ")"
                 );
 
                 sql.push("VALUES");
@@ -446,15 +445,15 @@ export default class SqliteDal extends Dal {
                 for (let v of values) {
                     valueClause.push(
                         "(" +
-                            colNames
-                                .map((col) => {
-                                    return this.quoteValue(
-                                        v[col],
-                                        colTypes[col]
-                                    );
-                                })
-                                .join(", ") +
-                            ")"
+                        colNames
+                            .map((col) => {
+                                return this.quoteValue(
+                                    v[col],
+                                    colTypes[col]
+                                );
+                            })
+                            .join(", ") +
+                        ")"
                     );
                 }
                 sql.push(valueClause.join(", "));
@@ -463,26 +462,26 @@ export default class SqliteDal extends Dal {
                 const colNames = Object.keys(values).sort();
                 sql.push(
                     "(" +
-                        colNames
-                            .map((v) => {
-                                return this.quoteIdentifier(v);
-                            })
-                            .join(", ") +
-                        ")"
+                    colNames
+                        .map((v) => {
+                            return this.quoteIdentifier(v);
+                        })
+                        .join(", ") +
+                    ")"
                 );
 
                 sql.push("VALUES");
                 sql.push(
                     "(" +
-                        colNames
-                            .map((col) => {
-                                return this.quoteValue(
-                                    values[col],
-                                    colTypes[col]
-                                );
-                            })
-                            .join(", ") +
-                        ")"
+                    colNames
+                        .map((col) => {
+                            return this.quoteValue(
+                                values[col],
+                                colTypes[col]
+                            );
+                        })
+                        .join(", ") +
+                    ")"
                 );
             } else {
                 throw new Error(
@@ -591,6 +590,57 @@ export default class SqliteDal extends Dal {
         if (options && "where" in options) {
             if (typeof options.where === "string") {
                 return "WHERE " + options.where;
+            } else {
+                throw new Error('Unsupported options.where parameter; should be a string')
+            }
+        } else {
+            return null;
+        }
+    }
+
+    _getGroupByClause(options, colTypes) {
+        // TODO HAVING
+        if (options && "groupBy" in options) {
+            if (typeof options.groupBy === "string") {
+                return "GROUP BY " + options.groupBy;
+            } else if (Array.isArray(options.groupBy)) {
+                return "GROUP BY " + options.groupBy.join(', ');
+            } else {
+                throw new Error('Unsupported options.groupBy parameter; should be a string or an array')
+            }
+        } else {
+            return null;
+        }
+    }
+
+    _getOrderByClause(options, colTypes) {
+        if (options && "orderBy" in options) {
+            if (typeof options.orderBy === "string") {
+                return "ORDER BY " + options.orderBy;
+            } else if (Array.isArray(options.orderBy)) {
+                return "ORDER BY " + options.orderBy.join(', ');
+            } else {
+                throw new Error('Unsupported options.orderBy parameter; should be a string or an array')
+            }
+        } else {
+            return null;
+        }
+    }
+
+    _getLimitClause(options, colTypes) {
+        if (options && "limit" in options) {
+            if (typeof options.limit === "number") {
+                if ('offset' in options) {
+                    if (typeof options.offset === 'number') {
+                        return `LIMIT ${options.limit} OFFSET ${options.offset}`;
+                    } else {
+                        throw new Error('Unsupported options.offset parameter; should be a string')
+                    }
+                } else {
+                    return "LIMIT " + options.limit;
+                }
+            } else {
+                throw new Error('Unsupported options.limit parameter; should be a string')
             }
         } else {
             return null;
@@ -642,21 +692,22 @@ export default class SqliteDal extends Dal {
                 sql.push(whereClause);
             }
 
-            // const groupByClause = this._getGroupByClause(_options, colTypes);
-            // if (groupByClause) {
-            //     sql.push(groupByClause);
-            // }
+            const groupByClause = this._getGroupByClause(_options, colTypes);
+            if (groupByClause) {
+                sql.push(groupByClause);
+            }
 
             // TODO WINDOW
 
-            // const orderByClause = this._getOrderByClause(_options, colTypes);
-            // if (orderByClause) {
-            //     sql.push(orderByClause);
-            // }
-            // const limitClause = this._getLimitClause(_options, colTypes);
-            // if (limitClause) {
-            //     sql.push(limitClause);
-            // }
+            const orderByClause = this._getOrderByClause(_options, colTypes);
+            if (orderByClause) {
+                sql.push(orderByClause);
+            }
+
+            const limitClause = this._getLimitClause(_options, colTypes);
+            if (limitClause) {
+                sql.push(limitClause);
+            }
 
             sql = sql.join(" ");
             console.debug(sql);
