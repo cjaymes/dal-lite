@@ -29,7 +29,10 @@ export default class Dal {
         );
     }
 
-    async tableExists(tableName) {
+    /**
+     * Checks if a table exists
+     */
+    async tableExists(table) {
         throw new Error(
             `Child class ${this.constructor.name} doesn't implement ${
                 new Error().stack.split("\n")[1].trim().split(" ")[1]
