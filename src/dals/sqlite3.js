@@ -8,11 +8,11 @@ import Dal from "../index.js";
 sqlite3.verbose();
 /** DAL that connects to sqlite3 databases
  * @extends Dal
- * @see Dal
+ * @see module:index~Dal
  */
 class SqliteDal extends Dal {
     /**
-     * @see Dal.constructor
+     * @see module:index.Dal.constructor
      */
     constructor(uri, _options = {}) {
         super(uri, _options);

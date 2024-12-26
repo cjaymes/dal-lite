@@ -37,7 +37,7 @@ DAL that connects to sqlite3 databases
 
 **Kind**: inner class of [<code>dals/sqlite3</code>](#module_dals/sqlite3)  
 **Extends**: <code>Dal</code>  
-**See**: Dal  
+**See**: module:index~Dal  
 
 * [~SqliteDal](#module_dals/sqlite3..SqliteDal) ⇐ <code>Dal</code>
     * [.type](#module_dals/sqlite3..SqliteDal+type)
