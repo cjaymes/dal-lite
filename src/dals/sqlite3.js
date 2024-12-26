@@ -12,7 +12,7 @@ sqlite3.verbose();
  */
 class SqliteDal extends Dal {
     /**
-     * @see module:index.Dal.constructor
+     * @see module:index.Dal
      */
     constructor(uri, _options = {}) {
         super(uri, _options);
@@ -21,7 +21,7 @@ class SqliteDal extends Dal {
     }
 
     /**
-     * @see Dal.type
+     * @see module:index.Dal#type
      */
     get type() {
         return "sqlite3";
