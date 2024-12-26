@@ -1,22 +1,36 @@
 "use strict";
 
+/** @module */
+
 import sqlite3 from "sqlite3";
 import Dal from "../index.js";
 
 sqlite3.verbose();
-
-export default class SqliteDal extends Dal {
-    constructor(uri) {
-        super(uri);
+/** DAL that connects to sqlite3 databases
+ * @extends Dal
+ * @see Dal
+ */
+class SqliteDal extends Dal {
+    /**
+     * @see Dal.constructor
+     */
+    constructor(uri, _options = {}) {
+        super(uri, _options);
 
         this._columnTypeCache = {};
     }
 
+    /**
+     * @see Dal.type
+     */
     get type() {
         return "sqlite3";
     }
 
-    async connect() {
+    /**
+     * @see Dal.connect
+     */
+    async connect(_options = {}) {
         if (
             "connection" in this &&
             this.connection &&
@@ -45,28 +59,54 @@ export default class SqliteDal extends Dal {
         });
     }
 
-    async tableExists(tableName) {
-        return new Promise((resolve, reject) => {
-            this.connection.get(
-                `SELECT name FROM sqlite_master WHERE type='table' AND name=?;`,
-                [tableName],
-                (err, row) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        if (row === undefined) {
-                            console.debug(`${tableName} table does not exist`);
-                        } else {
-                            console.debug(`${tableName} table exists`);
-                        }
-                        resolve(
-                            row !== undefined &&
-                                Object.hasOwn(row, "name") &&
-                                row.name == tableName
-                        );
-                    }
-                }
+    /**
+     * @see Dal.tableExists
+     */
+    async tableExists(table, _options = {}) {
+        let sql;
+        let params = [];
+        if (typeof table === "string") {
+            sql =
+                "SELECT name FROM sqlite_schema WHERE type='table' AND name=?;";
+            params.push(table);
+        } else if (typeof table === "object" && "table" in table) {
+            if ("schema" in table && table.schema !== "master") {
+                throw new "Table specifiers with .schema other than master are not supported"();
+            }
+            sql =
+                "SELECT name FROM sqlite_schema WHERE type='table' AND name=?;";
+            params.push(table.table);
+        } else if (Array.isArray(table) && table.length === 1) {
+            sql =
+                "SELECT name FROM sqlite_schema WHERE type='table' AND name=?;";
+            params.push(table[0]);
+        } else if (Array.isArray(table) && table.length === 2) {
+            if (table[0] !== "master") {
+                throw new "Table specifiers with [0] other than master are not supported"();
+            }
+            sql =
+                "SELECT name FROM sqlite_schema WHERE type='table' AND name=?;";
+            params.push(table[1]);
+        } else {
+            throw new Error(
+                "Invalid table specifier: must be array (of length 1 or 2), object (with table and optionally schema keys) or string"
             );
+        }
+        return new Promise((resolve, reject) => {
+            this.connection.get(sql, params, (err, row) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    if (row === undefined) {
+                        console.debug(
+                            `${JSON.stringify(table)} table does not exist`
+                        );
+                    } else {
+                        console.debug(`${JSON.stringify(table)} table exists`);
+                    }
+                    resolve(row !== undefined);
+                }
+            });
         });
     }
 
@@ -119,11 +159,11 @@ export default class SqliteDal extends Dal {
         if (Array.isArray(primaryKeyDef)) {
             sql += primaryKeyDef
                 .map((v) => {
-                    return `"${v}"`;
+                    return this.quoteIdentifier(v);
                 })
                 .join(", ");
         } else if (typeof primaryKeyDef === "string") {
-            sql += `"${primaryKeyDef}"`;
+            sql += this.quoteIdentifier(primaryKeyDef);
         } else {
             throw new Error(
                 "primary key definition should be an array or a string"
@@ -245,7 +285,10 @@ export default class SqliteDal extends Dal {
         return `CREATE TABLE ${this._getTableSpec(table)} (${sql.join(", ")})`;
     }
 
-    async createTable(table, tableDef) {
+    /**
+     * @see Dal.createTable
+     */
+    async createTable(table, tableDef, _options = {}) {
         // TODO create this._columnTypeCache[cacheKey]
         const sql = this._getTableDdl(table, tableDef);
         console.debug(sql);
@@ -264,7 +307,10 @@ export default class SqliteDal extends Dal {
     // TODO alterTable
     //  TODO delete this._columnTypeCache[cacheKey]
 
-    async dropTable(table) {
+    /**
+     * @see Dal.dropTable
+     */
+    async dropTable(table, _options = {}) {
         return new Promise((resolve, reject) => {
             delete this._columnTypeCache[this._getTableCacheKey(table)];
             this.connection.exec(
@@ -280,7 +326,10 @@ export default class SqliteDal extends Dal {
         });
     }
 
-    async exec(sql) {
+    /**
+     * @see Dal.exec
+     */
+    async exec(sql, _options = {}) {
         return new Promise((resolve, reject) => {
             this.connection.exec(sql, (err) => {
                 if (err) {
@@ -292,7 +341,10 @@ export default class SqliteDal extends Dal {
         });
     }
 
-    async query(sql) {
+    /**
+     * @see Dal.query
+     */
+    async query(sql, _options = {}) {
         return new Promise((resolve, reject) => {
             this.connection.all(sql, (err, rows) => {
                 if (err) {
@@ -304,11 +356,17 @@ export default class SqliteDal extends Dal {
         });
     }
 
-    quoteIdentifier(name) {
+    /**
+     * @see Dal.quoteIdentifier
+     */
+    quoteIdentifier(name, _options = {}) {
         return `"${name}"`;
     }
 
-    quoteValue(value, type) {
+    /**
+     * @see Dal.quoteValue
+     */
+    quoteValue(value, type, _options = {}) {
         // convert special values
         if (value === null) {
             return "NULL";
@@ -399,7 +457,10 @@ export default class SqliteDal extends Dal {
         return colTypes;
     }
 
-    async insert(table, values) {
+    /**
+     * @see Dal.insert
+     */
+    async insert(table, values, _options = {}) {
         return new Promise(async (resolve, reject) => {
             let sql = ["INSERT"];
 
@@ -514,7 +575,10 @@ export default class SqliteDal extends Dal {
         });
     }
 
-    async update(table, changes, _options = null) {
+    /**
+     * @see Dal.update
+     */
+    async update(table, changes, _options = {}) {
         return new Promise(async (resolve, reject) => {
             // TODO WITH
 
@@ -651,7 +715,7 @@ export default class SqliteDal extends Dal {
                         return `LIMIT ${options.limit} OFFSET ${options.offset}`;
                     } else {
                         throw new Error(
-                            "Unsupported options.offset parameter; should be a string"
+                            "Unsupported options.offset parameter; should be a number"
                         );
                     }
                 } else {
@@ -659,7 +723,7 @@ export default class SqliteDal extends Dal {
                 }
             } else {
                 throw new Error(
-                    "Unsupported options.limit parameter; should be a string"
+                    "Unsupported options.limit parameter; should be a number"
                 );
             }
         } else {
@@ -667,7 +731,10 @@ export default class SqliteDal extends Dal {
         }
     }
 
-    async select(columns, from, _options = null) {
+    /**
+     * @see Dal.select
+     */
+    async select(columns, from, _options = {}) {
         return new Promise(async (resolve, reject) => {
             let sql = [];
 
@@ -741,7 +808,10 @@ export default class SqliteDal extends Dal {
         });
     }
 
-    async delete(table, _options = null) {
+    /**
+     * @see Dal.delete
+     */
+    async delete(table, _options = {}) {
         return new Promise(async (resolve, reject) => {
             let sql = [];
             // TODO WITH
@@ -786,6 +856,9 @@ export default class SqliteDal extends Dal {
     // MAYBE loadExtension
     // MAYBE interrupt
 
+    /**
+     * @see Dal.close
+     */
     async close() {
         return new Promise((resolve, reject) => {
             console.info(`Disconnecting from sqlite3 database...`);
@@ -804,3 +877,5 @@ export default class SqliteDal extends Dal {
         await this.close();
     }
 }
+
+export default SqliteDal;
